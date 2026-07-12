@@ -44,6 +44,7 @@
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
   --sidebar-w: 380px;
+  --left-panel-w: 380px;
   --header-h: 56px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -60,8 +61,9 @@ html,body{height:100%;overflow:hidden;font-family:var(--font-sans);background:va
 #header .header-year{font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--accent-gold);min-width:56px;text-align:center;line-height:1}
 
 /* Map Container */
-#map-container{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1;transition:right .3s cubic-bezier(.4,0,.2,1)}
+#map-container{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1;transition:left .35s cubic-bezier(.4,0,.2,1),right .35s cubic-bezier(.4,0,.2,1)}
 body.sidebar-open #map-container{right:var(--sidebar-w)}
+body.state-panel-open #map-container{left:var(--left-panel-w)}
 #map{width:100%;height:100%;background:var(--bg-deep)}
 #map .leaflet-control-zoom{border:none!important;box-shadow:var(--shadow)!important}
 #map .leaflet-control-zoom a{background:var(--bg-card)!important;color:var(--text-primary)!important;border:1px solid var(--border)!important;font-family:var(--font-sans)!important}
@@ -75,6 +77,7 @@ body.sidebar-open #map-container{right:var(--sidebar-w)}
 /* Metric Pills */
 #metric-bar{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:6px;padding:10px 0;flex-wrap:wrap;justify-content:center;pointer-events:none}
 body.sidebar-open #metric-bar{left:calc(50% - var(--sidebar-w)/2)}
+body.state-panel-open #metric-bar{left:calc(50% + var(--left-panel-w)/2)}
 #metric-bar > *{pointer-events:auto}
 .metric-pill{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:11.5px;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;letter-spacing:0.2px;user-select:none;backdrop-filter:blur(8px)}
 .metric-pill:hover{background:var(--bg-hover);color:var(--text-primary);border-color:var(--border-light)}
@@ -83,6 +86,7 @@ body.sidebar-open #metric-bar{left:calc(50% - var(--sidebar-w)/2)}
 /* Timeline */
 #timeline-bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:28px;padding:8px 16px;box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 body.sidebar-open #timeline-bar{left:calc(50% - var(--sidebar-w)/2)}
+body.state-panel-open #timeline-bar{left:calc(50% + var(--left-panel-w)/2)}
 #timeline-bar button{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px;transition:all .15s;line-height:1}
 #timeline-bar button:hover{color:var(--text-primary);background:var(--bg-hover)}
 #timeline-bar button.active{color:var(--accent-gold)}
@@ -140,6 +144,7 @@ body.sidebar-open #sidebar-toggle{right:calc(var(--sidebar-w) + 10px)}
 /* Legend */
 #legend{position:fixed;bottom:120px;right:16px;z-index:999;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;box-shadow:var(--shadow);min-width:150px;font-size:11px}
 body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
+body.state-panel-open #legend{left:calc(var(--left-panel-w) + 16px);right:auto}
 #legend .legend-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-tertiary);margin-bottom:6px}
 #legend .legend-gradient{height:10px;border-radius:3px;margin-bottom:4px}
 #legend .legend-labels{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--text-secondary)}
@@ -179,7 +184,34 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
 .leaflet-tooltip{background:var(--bg-card)!important;color:var(--text-primary)!important;border:1px solid var(--border)!important;border-radius:6px!important;padding:6px 10px!important;font-size:12px!important;font-family:var(--font-sans)!important;box-shadow:0 4px 16px rgba(0,0,0,.5)!important}
 .leaflet-tooltip::before{border-top-color:var(--bg-card)!important}
 
-/* State popup content */
+/* State Detail Panel (left) */
+#state-panel{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--left-panel-w);z-index:1000;background:var(--bg-panel);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+body.state-panel-open #state-panel{transform:translateX(0)}
+#state-panel .panel-header{padding:16px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between}
+#state-panel .panel-header h2{font-family:var(--font-display);font-size:22px;color:var(--accent-gold);line-height:1.2}
+#state-panel .panel-header .panel-region{font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.8px;margin-top:2px}
+#state-panel .panel-close{background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:4px;transition:all .15s;line-height:1}
+#state-panel .panel-close:hover{color:var(--text-primary);background:var(--bg-hover)}
+#state-panel .panel-scroll{flex:1;overflow-y:auto;padding:12px 18px}
+#state-panel .panel-metrics{display:flex;flex-direction:column;gap:8px}
+#state-panel .panel-metric{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;transition:background .15s}
+#state-panel .panel-metric:hover{background:var(--bg-hover)}
+#state-panel .panel-metric .pm-label{font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px}
+#state-panel .panel-metric .pm-value{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text-primary)}
+#state-panel .panel-metric .pm-delta{font-size:10px;margin-left:6px}
+#state-panel .panel-metric .pm-delta.up{color:var(--accent-green)}
+#state-panel .panel-metric .pm-delta.down{color:var(--accent-red)}
+#state-panel .panel-empty{padding:40px 18px;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6}
+#state-panel .panel-empty strong{color:var(--accent-gold);display:block;margin-bottom:8px;font-family:var(--font-display);font-size:16px;font-weight:500}
+
+/* Responsive — left panel */
+@media(max-width:768px){
+  :root{--left-panel-w:100vw}
+  #state-panel{width:100vw}
+  body.state-panel-open #map-container{left:0!important}
+}
+
+/* Popup content (keep for reference) */
 .popup-content{font-family:var(--font-sans);min-width:260px}
 .popup-content h2{font-family:var(--font-display);font-size:18px;margin-bottom:4px;color:var(--accent-gold)}
 .popup-content .popup-region{font-size:11px;color:var(--text-tertiary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.8px}
@@ -209,7 +241,7 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
     <div class="header-stat"><div class="val" id="hdr-growth">—</div><div class="lbl">Growth (%)</div></div>
     <div class="header-stat"><div class="val" id="hdr-income">—</div><div class="lbl">Income ($)</div></div>
     <div class="header-stat"><div class="val" id="hdr-unemp">—</div><div class="lbl">Unemp (%)</div></div>
-    <div class="header-year" id="hdr-year">2025</div>
+    <div class="header-year" id="hdr-year">2000</div>
   </div>
 </div>
 
@@ -224,6 +256,24 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
   <button class="metric-pill" data-metric="poverty" role="tab">Poverty Rate</button>
   <button class="metric-pill" data-metric="hpi" role="tab">Housing Index</button>
   <button class="metric-pill" data-metric="edu" role="tab">Education</button>
+</div>
+
+<!-- State Detail Panel (left) -->
+<div id="state-panel">
+  <div class="panel-header">
+    <div>
+      <h2 id="panel-state-name">Select a State</h2>
+      <div class="panel-region" id="panel-state-region"></div>
+    </div>
+    <button class="panel-close" id="panel-close" title="Close panel">✕</button>
+  </div>
+  <div class="panel-scroll" id="panel-scroll">
+    <div class="panel-empty" id="panel-empty">
+      <strong>Click any state on the map</strong>
+      to view detailed economic indicators for all years 2000–2025
+    </div>
+    <div class="panel-metrics" id="panel-metrics" style="display:none"></div>
+  </div>
 </div>
 
 <!-- Map -->
@@ -244,7 +294,7 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
   <div class="sidebar-scroll">
     <!-- KPIs -->
     <div class="sidebar-section">
-      <h3>National Overview — <span id="sb-kpi-year">2025</span></h3>
+      <h3>National Overview — <span id="sb-kpi-year">2000</span></h3>
       <div class="kpi-grid">
         <div class="kpi-card selected" data-metric="gdp">
           <div class="kpi-val" id="kpi-gdp">—</div>
@@ -301,8 +351,8 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
   <button id="btn-step-back" title="Previous year (←)">⏮</button>
   <button id="btn-play" title="Play/Pause (Space)">▶</button>
   <button id="btn-step-fwd" title="Next year (→)">⏭</button>
-  <span class="year-label" id="timeline-year">2025</span>
-  <input type="range" id="year-slider" min="0" max="25" value="25" title="Year slider (← →)">
+  <span class="year-label" id="timeline-year">2000</span>
+  <input type="range" id="year-slider" min="0" max="25" value="0" title="Year slider (← →)">
   <button class="speed-btn" data-speed="400">0.4s</button>
   <button class="speed-btn" data-speed="700">0.7s</button>
   <button class="speed-btn active" data-speed="1200">1.2s</button>
@@ -373,7 +423,7 @@ const CHOROPLETH_COLORS = {
 // STATE
 // ══════════════════════════════════════════════════
 let currentMetric = "gdp";
-let currentYearIndex = 25; // 2025
+let currentYearIndex = 0; // 2000
 let currentRegion = "all";
 let isPlaying = false;
 let playSpeed = 1200;
@@ -381,6 +431,7 @@ let playTimer = null;
 let selectedState = null;
 let choroplethLayer = null;
 let barChart = null;
+let panelOpen = false;
 
 // ══════════════════════════════════════════════════
 // HELPERS
@@ -494,10 +545,9 @@ function updateChoropleth() {
         click: (e) => {
           L.DomEvent.stopPropagation(e);
           selectedState = code;
-          map.flyTo([feature.properties.lat || ECON_DATA.states[code].lat,
-                     feature.properties.lon || ECON_DATA.states[code].lon], 7, {duration: 0.8});
+          openStatePanel(code);
           highlightStateList();
-          setTimeout(() => layer.openPopup(), 900);
+          layer.openPopup();
         },
       });
       // Store lat/lon on feature for click handler
@@ -686,6 +736,7 @@ function updateAll(light) {
     updateStateList();
   }
   updateHeaderStats();
+  if (panelOpen) updateStatePanelLight();
   // Update metric pills
   document.querySelectorAll(".metric-pill").forEach(p => {
     p.classList.toggle("active", p.dataset.metric === currentMetric);
@@ -737,6 +788,59 @@ function stopPlay() {
 // ══════════════════════════════════════════════════
 function toggleSidebar() {
   document.body.classList.toggle("sidebar-open");
+}
+
+// ══════════════════════════════════════════════════
+// LEFT STATE DETAIL PANEL
+// ══════════════════════════════════════════════════
+
+function openStatePanel(code) {
+  const st = ECON_DATA.states[code];
+  if (!st) return;
+  panelOpen = true;
+  document.body.classList.add("state-panel-open");
+  updateStatePanelContent(code);
+  // Invalidate map size after panel transition
+  setTimeout(() => map.invalidateSize(), 400);
+}
+
+function closeStatePanel() {
+  panelOpen = false;
+  document.body.classList.remove("state-panel-open");
+  selectedState = null;
+  highlightStateList();
+  setTimeout(() => map.invalidateSize(), 400);
+}
+
+function updateStatePanelContent(code) {
+  const st = ECON_DATA.states[code];
+  if (!st) return;
+  const yr = currentYearIndex;
+  document.getElementById("panel-state-name").textContent = st.name;
+  document.getElementById("panel-state-region").textContent = st.region + " · " + YEARS[yr];
+  document.getElementById("panel-empty").style.display = "none";
+
+  const metricOrder = ["gdp","gdp_growth","gdppc","pop","unemp","income","poverty","hpi","edu"];
+  const container = document.getElementById("panel-metrics");
+  container.style.display = "flex";
+  container.innerHTML = metricOrder.map(m => {
+    const v = st[m][yr];
+    const d = getDelta(code, m, yr);
+    const cls = d != null ? (d >= 0 ? "up" : "down") : "";
+    const arrow = d != null ? (d >= 0 ? "▲" : "▼") : "";
+    return `<div class="panel-metric">
+      <span class="pm-label">${METRIC_LABELS[m]}</span>
+      <span>
+        <span class="pm-value">${METRIC_FORMATS[m](v)}</span>
+        <span class="pm-delta ${cls}">${arrow}${d != null ? Math.abs(d).toFixed(1) + "%" : ""}</span>
+      </span>
+    </div>`;
+  }).join("");
+}
+
+function updateStatePanelLight() {
+  if (!panelOpen || !selectedState) return;
+  updateStatePanelContent(selectedState);
 }
 
 // ══════════════════════════════════════════════════
@@ -802,6 +906,9 @@ document.querySelectorAll(".speed-btn").forEach(btn => {
 // Sidebar toggle
 document.getElementById("sidebar-toggle").addEventListener("click", toggleSidebar);
 
+// Left panel close
+document.getElementById("panel-close").addEventListener("click", closeStatePanel);
+
 // State search
 document.getElementById("state-search").addEventListener("input", updateStateList);
 
@@ -814,6 +921,7 @@ document.addEventListener("keydown", e => {
     case " ": e.preventDefault(); togglePlay(); break;
     case "b": case "B": toggleSidebar(); break;
     case "f": case "F": map.toggleFullscreen(); break;
+    case "Escape": closeStatePanel(); break;
     case "Home": stopPlay(); currentYearIndex = 0; updateAll(); break;
     case "End": stopPlay(); currentYearIndex = YEARS.length - 1; updateAll(); break;
   }
