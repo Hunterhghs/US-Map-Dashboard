@@ -303,10 +303,10 @@ body.sidebar-open #legend{right:calc(var(--sidebar-w) + 16px)}
   <button id="btn-step-fwd" title="Next year (→)">⏭</button>
   <span class="year-label" id="timeline-year">2025</span>
   <input type="range" id="year-slider" min="0" max="25" value="25" title="Year slider (← →)">
-  <button class="speed-btn" data-speed="500">0.5s</button>
-  <button class="speed-btn active" data-speed="250">1×</button>
-  <button class="speed-btn" data-speed="100">2×</button>
-  <button class="speed-btn" data-speed="40">5×</button>
+  <button class="speed-btn" data-speed="2000">2s</button>
+  <button class="speed-btn active" data-speed="1200">1.2s</button>
+  <button class="speed-btn" data-speed="700">0.7s</button>
+  <button class="speed-btn" data-speed="400">0.4s</button>
 </div>
 
 <!-- Bottom Info Bar -->
@@ -376,7 +376,7 @@ let currentMetric = "gdp";
 let currentYearIndex = 25; // 2025
 let currentRegion = "all";
 let isPlaying = false;
-let playSpeed = 250;
+let playSpeed = 1200;
 let playTimer = null;
 let selectedState = null;
 let choroplethLayer = null;
@@ -491,12 +491,20 @@ function updateChoropleth() {
       const code = feature.properties.postal;
       layer.bindTooltip(feature.properties.name, {sticky: true, opacity: 0.9});
       layer.on({
-        click: () => {
+        click: (e) => {
+          L.DomEvent.stopPropagation(e);
           selectedState = code;
-          updateSidebar();
+          map.flyTo([feature.properties.lat || ECON_DATA.states[code].lat,
+                     feature.properties.lon || ECON_DATA.states[code].lon], 7, {duration: 0.8});
           highlightStateList();
+          setTimeout(() => layer.openPopup(), 900);
         },
       });
+      // Store lat/lon on feature for click handler
+      if (ECON_DATA.states[code]) {
+        feature.properties.lat = ECON_DATA.states[code].lat;
+        feature.properties.lon = ECON_DATA.states[code].lon;
+      }
       layer.bindPopup(() => buildPopupContent(code, currentYearIndex), {maxWidth: 320});
     },
     filter: feature => {
@@ -667,11 +675,17 @@ function highlightStateList() {
 // ══════════════════════════════════════════════════
 // UPDATE ALL
 // ══════════════════════════════════════════════════
-function updateAll() {
-  updateChoropleth();
+function updateAll(light) {
+  if (light) {
+    updateChoroplethLight();
+    updateBarChartLight();
+    updateStateListLight();
+  } else {
+    updateChoropleth();
+    updateBarChart();
+    updateStateList();
+  }
   updateHeaderStats();
-  updateBarChart();
-  updateStateList();
   // Update metric pills
   document.querySelectorAll(".metric-pill").forEach(p => {
     p.classList.toggle("active", p.dataset.metric === currentMetric);
@@ -698,21 +712,24 @@ function startPlay() {
   isPlaying = true;
   document.getElementById("btn-play").textContent = "⏸";
   document.getElementById("btn-play").classList.add("active");
-  playTimer = setInterval(() => {
+  function tick() {
+    if (!isPlaying) return;
     if (currentYearIndex < YEARS.length - 1) {
       currentYearIndex++;
     } else {
       currentYearIndex = 0;
     }
-    updateAll();
-  }, playSpeed);
+    updateAll(true); // light update during playback
+    playTimer = setTimeout(tick, playSpeed);
+  }
+  playTimer = setTimeout(tick, playSpeed);
 }
 
 function stopPlay() {
   isPlaying = false;
   document.getElementById("btn-play").textContent = "▶";
   document.getElementById("btn-play").classList.remove("active");
-  if (playTimer) { clearInterval(playTimer); playTimer = null; }
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
 }
 
 // ══════════════════════════════════════════════════
@@ -802,12 +819,85 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// Responsive: close sidebar on small screens when clicking map
-map.on("click", () => {
-  if (window.innerWidth <= 768) {
+// Responsive: close sidebar on small screens when clicking empty map area
+map.on("click", (e) => {
+  if (window.innerWidth <= 768 && !e.originalEvent._stateClickHandled) {
     document.body.classList.remove("sidebar-open");
   }
 });
+
+// ══════════════════════════════════════════════════
+// LIGHT UPDATES (for smooth playback)
+// ══════════════════════════════════════════════════
+
+function updateChoroplethLight() {
+  if (!choroplethLayer) { updateChoropleth(); return; }
+  const {min, max} = getMinMax(currentMetric, currentYearIndex, currentRegion);
+  choroplethLayer.eachLayer(layer => {
+    const code = layer.feature.properties.postal;
+    const v = getStateValue(code, currentMetric, currentYearIndex);
+    layer.setStyle({ fillColor: getChoroplethColor(v, min, max, currentMetric) });
+    // Update popup content for current year
+    layer.unbindPopup();
+    layer.bindPopup(() => buildPopupContent(code, currentYearIndex), {maxWidth: 320});
+  });
+  updateLegend(min, max);
+}
+
+function updateBarChartLight() {
+  if (!barChart) { updateBarChart(); return; }
+  const yr = currentYearIndex;
+  const states = Object.entries(ECON_DATA.states)
+    .filter(([code, st]) => code !== "US" && (currentRegion === "all" || st.region === currentRegion))
+    .map(([code, st]) => ({code, name: st.name, value: st[currentMetric][yr], region: st.region}))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 12);
+  barChart.data.labels = states.map(s => s.code);
+  barChart.data.datasets[0].data = states.map(s => s.value);
+  barChart.data.datasets[0].backgroundColor = states.map(s =>
+    s.region === "Northeast" ? "#4da8da" : s.region === "Midwest" ? "#9b7ec4" : s.region === "South" ? "#e8734a" : "#2dbda8"
+  );
+  barChart.update('none'); // no animation during playback
+  document.getElementById("chart-year").textContent = YEARS[yr];
+}
+
+function updateStateListLight() {
+  const yr = currentYearIndex;
+  const search = document.getElementById("state-search").value.toLowerCase();
+  let states = Object.entries(ECON_DATA.states)
+    .filter(([code, st]) => code !== "US" && (currentRegion === "all" || st.region === currentRegion))
+    .map(([code, st]) => ({code, name: st.name, region: st.region, value: st[currentMetric][yr]}));
+  if (search) {
+    states = states.filter(s => s.name.toLowerCase().includes(search) || s.code.toLowerCase().includes(search));
+  }
+  const invert = METRIC_INVERTED.has(currentMetric);
+  states.sort((a, b) => invert ? a.value - b.value : b.value - a.value);
+
+  const container = document.getElementById("state-list");
+  const existingItems = container.querySelectorAll(".state-item");
+  const existingMap = {};
+  existingItems.forEach(el => { existingMap[el.dataset.code] = el; });
+
+  // Only rebuild if structure changed (different states or order changed significantly)
+  const currentCodes = states.map(s => s.code).join(",");
+  const existingCodes = Array.from(existingItems).map(el => el.dataset.code).join(",");
+
+  if (currentCodes !== existingCodes) {
+    // Structure changed — rebuild
+    updateStateList();
+    return;
+  }
+
+  // Update values and ranks in-place
+  states.forEach((s, i) => {
+    const el = existingMap[s.code];
+    if (!el) return;
+    const rankEl = el.querySelector(".st-rank");
+    const valEl = el.querySelector(".st-val");
+    if (rankEl) rankEl.textContent = "#" + (i + 1);
+    if (valEl) valEl.textContent = METRIC_FORMATS[currentMetric](s.value);
+  });
+}
 
 // ══════════════════════════════════════════════════
 // INIT
